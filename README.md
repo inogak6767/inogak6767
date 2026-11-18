@@ -44,6 +44,8 @@ Salin `.env.example` menjadi `.env` sebelum menjalankan Docker. Tanpa API key, d
 
 ## Fitur Dashboard
 - Pencarian Target/Trending untuk TikTok, Instagram, Threads, dan X
+- Integrasi nyata `/tt/hashtag/posts` EnsembleData untuk pencarian hashtag TikTok
+- Konversi akun dan hashtag menjadi node; relasi posting dan penggunaan hashtag menjadi edge
 - Empat metrik: Betweenness, Degree, Closeness, dan PageRank
 - Graf interaktif, zoom, fit, pemilihan node, dan drag
 - Inspektur aktor serta peringkat aktor teratas

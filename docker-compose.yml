@@ -9,6 +9,9 @@ services:
       DATABASE_URL: postgres://sna:sna_password@postgres:5432/sna
       ENSEMBLEDATA_API_KEY: ${ENSEMBLEDATA_API_KEY:-}
       ENSEMBLEDATA_API_URL: ${ENSEMBLEDATA_API_URL:-https://ensembledata.com/apis}
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       postgres:
         condition: service_healthy

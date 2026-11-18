@@ -1,8 +1,19 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 const { Pool } = require("pg");
 const Graph = require("graphology");
+
+function loadLocalEnv() {
+  const envPath = path.join(__dirname, "..", ".env");
+  if (!fs.existsSync(envPath)) return;
+  fs.readFileSync(envPath, "utf8").split(/\r?\n/).forEach((line) => {
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (match && !process.env[match[1]]) process.env[match[1]] = match[2].trim();
+  });
+}
+loadLocalEnv();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -171,31 +182,102 @@ async function tryEnsembleData(params) {
   const baseUrl = process.env.ENSEMBLEDATA_API_URL;
   if (!apiKey || !baseUrl) return null;
   try {
-    const customUrl = process.env.ENSEMBLEDATA_SEARCH_URL;
-    const url = new URL(customUrl || `${baseUrl.replace(/\/$/, "")}/search`);
+    const hashtag = params.query.replace(/^[@#]+/, "").trim();
+    const url = new URL(`${baseUrl.replace(/\/$/, "")}/tt/hashtag/posts`);
     url.searchParams.set("token", apiKey);
-    url.searchParams.set("platform", params.platform);
-    url.searchParams.set("query", params.query);
-    url.searchParams.set("type", params.queryType);
+    url.searchParams.set("name", hashtag || "magic");
+    url.searchParams.set("cursor", "0");
     const response = await fetch(url.toString(), { headers: { Accept: "application/json" } });
     if (!response.ok) return null;
     const payload = await response.json();
-    const nodes = payload.nodes || payload.accounts || payload.data?.nodes;
-    const edges = payload.edges || payload.interactions || payload.data?.edges;
-    if (!Array.isArray(nodes) || !Array.isArray(edges)) return null;
-    return { nodes: nodes.map((node, index) => ({
-      id: String(node.id || node.username || `N${index + 1}`),
-      label: node.label || node.username || node.name || `@actor${index + 1}`,
-      handle: node.handle || node.username || "",
-      reach: node.reach || node.followers_text || "Unknown",
-      role: node.role || "Account",
-      followers: Number(node.followers || 0)
-    })), edges: edges.map((edge, index) => ({
-      source: String(edge.source || edge.from),
-      target: String(edge.target || edge.to),
-      interactionType: edge.interactionType || edge.type || "MENTION",
-      weight: Number(edge.weight || 1)
-    })) };
+    const posts = payload.data?.data;
+    if (!Array.isArray(posts) || posts.length === 0) return null;
+
+    const nodeMap = new Map();
+    const edgeMap = new Map();
+    const hashtagMap = new Map();
+    const safeNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+    const addNode = (id, node) => {
+      if (!id) return;
+      if (!nodeMap.has(id)) nodeMap.set(id, node);
+      else {
+        const existing = nodeMap.get(id);
+        existing.followers = Math.max(existing.followers, node.followers);
+        existing.reach = Math.max(existing.reach || 0, node.reach || 0);
+        existing.postCount = (existing.postCount || 0) + 1;
+      }
+    };
+    const addEdge = (source, target, interactionType, weight) => {
+      const id = `${source}|${target}|${interactionType}`;
+      const previous = edgeMap.get(id);
+      edgeMap.set(id, {
+        source,
+        target,
+        interactionType,
+        weight: (previous?.weight || 0) + Math.max(1, safeNumber(weight))
+      });
+    };
+
+    const topicId = `HASHTAG:${hashtag || "magic"}`;
+    hashtagMap.set(topicId, {
+      id: topicId,
+      label: `#${hashtag || "magic"}`,
+      handle: `#${hashtag || "magic"}`,
+      reach: posts.length,
+      role: "Hashtag",
+      followers: posts.length,
+      postCount: posts.length
+    });
+
+    posts.forEach((post) => {
+      const author = post.author || {};
+      const authorId = String(author.uid || author.unique_id || post.author_user_id || "");
+      if (!authorId) return;
+      const stats = post.statistics || {};
+      const engagement = safeNumber(stats.digg_count) + safeNumber(stats.comment_count) + safeNumber(stats.share_count);
+      addNode(authorId, {
+        id: authorId,
+        label: author.nickname || author.unique_id || `@actor_${authorId.slice(-6)}`,
+        handle: author.unique_id ? `@${author.unique_id}` : `@actor_${authorId.slice(-6)}`,
+        reach: safeNumber(author.follower_count),
+        role: "Account",
+        followers: safeNumber(author.follower_count),
+        postCount: 1,
+        engagement
+      });
+      addEdge(authorId, topicId, "POSTED_IN", Math.max(1, engagement || stats.play_count || 1));
+
+      (post.text_extra || []).forEach((item) => {
+        if (item.type !== 1) return;
+        const mentionedHashtag = String(item.hashtag_name || "").replace(/^#/, "");
+        if (!mentionedHashtag) return;
+        const mentionedId = `HASHTAG:${mentionedHashtag}`;
+        if (!hashtagMap.has(mentionedId)) {
+          hashtagMap.set(mentionedId, {
+            id: mentionedId,
+            label: `#${mentionedHashtag}`,
+            handle: `#${mentionedHashtag}`,
+            reach: 1,
+            role: "Hashtag",
+            followers: 1,
+            postCount: 1
+          });
+        } else {
+          const existing = hashtagMap.get(mentionedId);
+          existing.postCount = (existing.postCount || 0) + 1;
+          existing.reach = existing.postCount;
+          existing.followers = existing.postCount;
+        }
+        addEdge(authorId, mentionedId, "USES_HASHTAG", 1);
+      });
+    });
+
+    hashtagMap.forEach((node) => nodeMap.set(node.id, node));
+    return {
+      nodes: [...nodeMap.values()],
+      edges: [...edgeMap.values()],
+      nextCursor: payload.data?.nextCursor
+    };
   } catch (error) {
     console.warn("EnsembleData request failed; using demo data:", error.message);
     return null;
