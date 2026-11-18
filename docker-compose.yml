@@ -1,0 +1,37 @@
+services:
+  app:
+    build: ./app
+    container_name: sna_nodejs_app
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://sna:sna_password@postgres:5432/sna
+      ENSEMBLEDATA_API_KEY: ${ENSEMBLEDATA_API_KEY:-}
+      ENSEMBLEDATA_API_URL: ${ENSEMBLEDATA_API_URL:-https://ensembledata.com/apis}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app/public:/app/public
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sna_postgres
+    environment:
+      POSTGRES_DB: sna
+      POSTGRES_USER: sna
+      POSTGRES_PASSWORD: sna_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sna -d sna"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

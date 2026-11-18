@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SNA Studio - Local Analytics</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">※</div>
+        <div><strong>SNA Studio</strong><span>LOCAL ANALYTICS</span></div>
+      </div>
+      <div class="status-pills">
+        <span class="status-pill"><i></i> Docker: <b id="dockerStatus">Connected</b></span>
+        <span class="status-pill"><i></i> PostgreSQL: <b id="databaseStatus">Checking</b></span>
+        <span class="status-pill"><i></i> EnsembleData: <b id="apiStatus">Ready</b></span>
+      </div>
+      <div class="top-actions">
+        <div class="session-pill">Session: <strong id="sessionId">BOOT-000</strong></div>
+        <button class="icon-button" id="exportButton" title="Export JSON">⇩</button>
+        <button class="icon-button" id="settingsButton" title="Export PNG">↻</button>
+        <div class="avatar">G</div>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <button class="nav-item active" data-view="topology"><span>⌘</span><b>Graph Topology</b></button>
+      <button class="nav-item"><span>♟</span><b>Community Clusters</b></button>
+      <button class="nav-item"><span>⌁</span><b>Centrality & Bridges</b></button>
+      <button class="nav-item"><span>◉</span><b>Influence Propagation</b></button>
+      <button class="nav-item"><span>♨</span><b>Source & Pipeline</b></button>
+    </aside>
+
+    <main class="main">
+      <section class="control-area">
+        <div class="search-row">
+          <span class="section-label">◎ Target Akun &nbsp; · &nbsp; # Trending Topic</span>
+          <div class="mode-group">
+            <button class="mode-button active" data-query-type="TARGET">◎ TikTok</button>
+            <button class="mode-button" data-query-type="TARGET">◎ Instagram</button>
+            <button class="mode-button" data-query-type="TARGET">◉ Threads</button>
+            <button class="mode-button" data-query-type="TRENDING">⚡ X (Twitter)</button>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <label class="search-input">
+            <span>⌕</span>
+            <input id="queryInput" type="text" value="@bruzz_nexus" placeholder="Masukkan username atau hashtag">
+          </label>
+          <button class="primary-button" id="analyzeButton"><span>♺</span> Tarik Data (EnsembleData)</button>
+        </div>
+
+        <div class="metric-row">
+          <span class="section-label">ALGORITMA METRIK</span>
+          <div class="metric-group" id="metricGroup">
+            <button class="metric-button active" data-metric="betweenness">▾ Betweenness Centrality</button>
+            <button class="metric-button" data-metric="degree">⌘ Degree (in/out)</button>
+            <button class="metric-button" data-metric="closeness">● Closeness Centrality</button>
+            <button class="metric-button" data-metric="pagerank">⊕ PageRank (Gerencial)</button>
+          </div>
+          <div class="graph-tools">
+            <button id="zoomOut">−</button>
+            <button id="zoomIn">＋</button>
+            <button id="fitGraph">⌗</button>
+            <button id="goRealtime">◎ <b>Go Fokus Aktif</b></button>
+            <button id="fitNetwork">⊙ <b>Fit Entire Topology</b></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="graph-card">
+          <div id="cy" aria-label="Network graph"></div>
+          <div class="legend">
+            <span><i class="cyan"></i> Aktor Terpisah</span>
+            <span><i class="blue"></i> Komunitas Rendah (Shooter)</span>
+            <span><i class="violet"></i> 17</span>
+          </div>
+        </div>
+
+        <aside class="details-panel">
+          <section class="inspector">
+            <h3><span>▣</span> Inspektur Aktor</h3>
+            <div class="selected-actor">
+              <div class="actor-avatar" id="actorAvatar">BN</div>
+              <div class="actor-main">
+                <strong id="actorName">bruzz_nexus ◎ 0.942</strong>
+                <span id="actorHandle">Central Node Target</span>
+              </div>
+              <i class="actor-score">Skor Metrik</i>
+            </div>
+            <div class="detail-grid">
+              <div><span>Total Followers</span><strong id="actorFollowers">245.8K</strong></div>
+              <div><span>In/Out Degree</span><strong id="actorDegree">189 In/Out</strong></div>
+              <div><span>Komunitas</span><strong id="actorCommunity">Aktif Individu</strong></div>
+              <div><span>Interaction</span><strong id="actorInteraction">High Retweet</strong></div>
+            </div>
+          </section>
+
+          <section class="metrics-panel">
+            <h3>Komposisi Algoritma Sentralitas</h3>
+            <div class="metric-bar"><div><span>Betweenness (Sentralitas)</span><b id="betweennessValue">0.88</b></div><i><em id="betweennessBar"></em></i></div>
+            <div class="metric-bar"><div><span>Degree Centrality</span><b id="degreeValue">0.92</b></div><i><em id="degreeBar"></em></i></div>
+            <div class="metric-bar"><div><span>Closeness (Acceptance Sine)</span><b id="closenessValue">0.74</b></div><i><em id="closenessBar"></em></i></div>
+            <div class="metric-bar"><div><span>PageRank Authority</span><b id="pagerankValue">0.89</b></div><i><em id="pagerankBar"></em></i></div>
+          </section>
+
+          <section class="ranking-panel">
+            <div class="ranking-header"><h3>PERINGKAT AKTOR</h3><span id="rankingMetric">BETWEENNESS</span></div>
+            <div id="rankingList"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div>Graph Memory <strong id="memoryValue">34.2 MB</strong></div>
+      <div>12.4K Nodes <b id="edgeCount">34 Edge</b></div>
+      <div class="pipeline">
+        <i></i>
+        <b>sns_nodejs_app: Up 2h 41m</b>
+        <i></i>
+        <b>sna_postgres: Healthy (8,420 nodes cached)</b>
+        <span>EnsembleData: <strong id="footerApiStatus">Ready</strong></span>
+        <em><u></u></em>
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast" role="status"></div>
+  <script src="/vendor/cytoscape/dist/cytoscape.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

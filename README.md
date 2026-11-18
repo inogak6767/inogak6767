@@ -39,3 +39,13 @@ sna-dashboard/
    docker-compose up --build -d
    ```
 3. Buka browser dan akses `http://localhost:3000`.
+
+Salin `.env.example` menjadi `.env` sebelum menjalankan Docker. Tanpa API key, dashboard tetap berjalan dengan data demonstrasi lokal sehingga semua fitur visual dan metrik dapat diuji.
+
+## Fitur Dashboard
+- Pencarian Target/Trending untuk TikTok, Instagram, Threads, dan X
+- Empat metrik: Betweenness, Degree, Closeness, dan PageRank
+- Graf interaktif, zoom, fit, pemilihan node, dan drag
+- Inspektur aktor serta peringkat aktor teratas
+- Penyimpanan sesi dan relasi ke PostgreSQL
+- Ekspor hasil JSON dan gambar graf PNG
